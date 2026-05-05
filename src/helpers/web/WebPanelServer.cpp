@@ -2571,6 +2571,8 @@ bool WebPanelServer::start() {
   config.httpd.recv_wait_timeout = 2;
   config.httpd.send_wait_timeout = 2;
   config.httpd.stack_size = kWebServerStackSize;
+  config.httpd.task_priority = tskIDLE_PRIORITY + 2;
+  config.httpd.core_id = 0;
 #if defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR >= 5
   config.servercert = reinterpret_cast<const uint8_t*>(mqtt_web_panel_cert::kServerCertPem);
   config.servercert_len = sizeof(mqtt_web_panel_cert::kServerCertPem);
@@ -2614,6 +2616,8 @@ bool WebPanelServer::start() {
   redirect_config.recv_wait_timeout = 2;
   redirect_config.send_wait_timeout = 2;
   redirect_config.stack_size = kWebServerStackSize;
+  redirect_config.task_priority = tskIDLE_PRIORITY + 2;
+  redirect_config.core_id = 0;
   redirect_config.uri_match_fn = httpd_uri_match_wildcard;
 
   rc = httpd_start(&_redirect_server, &redirect_config);
