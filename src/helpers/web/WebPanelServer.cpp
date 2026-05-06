@@ -68,20 +68,25 @@ esp_err_t sendChunk(httpd_req_t* req, const char* text) {
 #define sendProgmem(req, mem)  sendWhole(req, mem, sizeof(mem) - 1)
 
 esp_err_t sendWhole(httpd_req_t* req, const char* text, const size_t len) {
-  if (text == nullptr) {
+  if (text == nullptr || len == 0) {
     return httpd_resp_send_chunk(req, nullptr, 0);
   }
 
-  size_t offset = 0;
-  while (offset < len) {
-    const size_t chunk_len = ((len - offset) > kWebPageChunkSize) ? kWebPageChunkSize : (len - offset);
-    if (httpd_resp_send_chunk(req, &text[offset], chunk_len) != ESP_OK) {
-      httpd_resp_send_chunk(req, nullptr, 0);
+  const size_t last_size = ((len - 1) % kWebPageChunkSize) + 1;
+  const char* last = text + (len - last_size);
+
+  for (const char* p = text; p < last; p += kWebPageChunkSize) {
+    if (httpd_resp_send_chunk(req, p, kWebPageChunkSize) != ESP_OK) {
       return ESP_FAIL;
     }
-    offset += chunk_len;
+
     vTaskDelay(1);
   }
+
+  if (httpd_resp_send_chunk(req, last, last_size) != ESP_OK) {
+    return ESP_FAIL;
+  }
+
   return httpd_resp_send_chunk(req, nullptr, 0);
 }
 
