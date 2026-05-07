@@ -103,9 +103,6 @@ void WebService::ensureWebServer() {
     return;
   }
   if (_suspended_for_ota) {
-    if (_panel.isRunning()) {
-      _panel.stopRedirectServer();
-    }
     return;
   }
   if (_panel.isRunning()) {
