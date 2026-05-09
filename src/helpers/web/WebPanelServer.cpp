@@ -481,6 +481,8 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     .stats-shell { display:grid; gap:12px; }
     .stats-empty, .stats-error { background:var(--surface2); border:1px dashed var(--border); border-radius:12px; padding:16px; color:var(--text-muted); }
     .stats-error { color:var(--status-red); }
+    @keyframes blink-stale { 0%, 100% { color: #e05050; } 50% { color: var(--text-muted); } }
+    .stats-stale { color: #e05050; font-size: 13px; font-weight: 400; animation: blink-stale 1.5s ease-in-out infinite; }
     .trend-section-copy { display:grid; gap:6px; }
     .trend-section-copy p { margin:0; color:var(--text-muted); }
     .trend-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
@@ -983,7 +985,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     </section>
 
     <section class="card" id="statsPagePanel" style="display:none">
-      <h2>Stats</h2>
+      <h2 style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:0">Stats<span id="statsLastUpdated" class="stats-stale" style="display:none"></span></h2>
       <div id="statsSummary" class="stats-shell">
         <div class="stats-empty">Loading summary...</div>
       </div>
@@ -1017,6 +1019,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     let commandQueue = Promise.resolve();
     let radioPresetEntries = [];
     let currentRadioConfig = null;
+    let statsLastFetchedAt = null;
     const statusEl = document.getElementById("status");
     const replyEl = document.getElementById("reply");
     const themeToggleEl = document.getElementById("themeToggle");
@@ -2092,6 +2095,20 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       }
       return order;
     }
+    function updateStatsLastUpdated() {
+      const el = document.getElementById("statsLastUpdated");
+      if (!statsLastFetchedAt) { el.style.display = "none"; return; }
+      const secs = Math.round((Date.now() - statsLastFetchedAt) / 1000);
+      if (secs < 60) { return; }
+      let label;
+      if (secs < 3600) {
+        label = Math.floor(secs / 60) + "m ago";
+      } else {
+        label = Math.floor(secs / 3600) + "h " + Math.floor((secs % 3600) / 60) + "m ago";
+      }
+      el.textContent = "refreshed >" + label;
+      el.style.display = "";
+    }
     function initTrendCards(seriesOrder) {
       const trendsEl = document.getElementById("statsTrends");
       if (!trendsEl) return;
@@ -2403,11 +2420,14 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     async function loadStatsPage() {
       const summaryEl = document.getElementById("statsSummary");
       if (!summaryEl) return;
+      statsLastFetchedAt = null;
+      updateStatsLastUpdated();
       summaryEl.innerHTML = '<div class="stats-empty">Loading summary...</div>';
       let summaryPayload = null;
       try {
         summaryPayload = await fetchJson("/api/stats?view=summary");
         if (!summaryPayload) throw new Error("no summary payload");
+        statsLastFetchedAt = Date.now();
         renderStatsSummary(summaryPayload);
         initTrendCards(getTrendSeriesOrder(summaryPayload));
       } catch (error) {
@@ -2679,6 +2699,9 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 	    refreshMeshcoretelModeUi();
 	    refreshLetsmeshModeUi();
 	    initApp();
+	    if (isStatsPage) {
+	      setInterval(updateStatsLastUpdated, 10000);
+	    }
   </script>
 </body>
 </html>
