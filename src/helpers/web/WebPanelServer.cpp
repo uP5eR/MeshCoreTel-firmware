@@ -1551,11 +1551,11 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       ];
       const middleCards = [
         results.radio ? renderRadioCard(results.radio) : renderMissingCard("Radio", "stats-radio unavailable"),
-        results.memory ? renderMemoryCard(results.memory) : renderMissingCard("Memory", "memory unavailable")
+        results.packets ? renderPacketsCard(results.packets) : renderMissingCard("Packets", "stats-packets unavailable")
       ];
       const lowerCards = [
         results.wifi ? renderWifiCard(results.wifi, results.wifi_powersave) : renderMissingCard("Wi-Fi", "wifi.status unavailable"),
-        results.packets ? renderPacketsCard(results.packets) : renderMissingCard("Packets", "stats-packets unavailable")
+        results.memory ? renderMemoryCard(results.memory) : renderMissingCard("Memory", "memory unavailable")
       ];
       dashboardEl.innerHTML = notices +
         `<div class="hud-grid-1">${coreCards.join("")}</div>` +
