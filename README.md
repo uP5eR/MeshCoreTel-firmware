@@ -13,8 +13,7 @@
 - синхронизация времени по NTP
 - поддержка MQTT-брокеров:
   - `meshcoretel`
-  - `letsmesh-eu`
-  - `letsmesh-us`
+  - `meshscope-khv`
 - транспорт plain TCP и WSS по пути `/mqtt`
 - JWT-аутентификация с использованием идентификации устройства для WSS
 - CLI-команды для:

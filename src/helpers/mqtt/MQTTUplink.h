@@ -6,7 +6,6 @@
 #include <helpers/NetworkStateProvider.h>
 #include <target.h>
 
-#include "JWTHelper.h"
 #include "MQTTPrefs.h"
 
 #if defined(ESP_PLATFORM)
@@ -88,10 +87,8 @@ private:
     unsigned long last_connect_attempt;
     unsigned long next_connect_attempt;
     unsigned long connected_since_ms;
-    time_t token_expires_at;
     uint8_t reconnect_failures;
     char username[70];
-    char* token;
     char client_id[48];
     char status_topic[128];
     char offline_payload[512];
@@ -111,13 +108,12 @@ private:
 
 #if defined(ESP_PLATFORM)
   static constexpr uint8_t kMeshcoretelBit = 0x01;
-  static constexpr uint8_t kLetsmeshEuBit = 0x02;
-  static constexpr uint8_t kLetsmeshUsBit = 0x04;
+  static constexpr uint8_t kMeshscopeKhvBit = 0x02;
   static constexpr uint8_t kMaxEnabledBrokers = 2;
-  static const BrokerSpec kBrokerSpecs[3];
+  static const BrokerSpec kBrokerSpecs[2];
   static bool isUnsetIataValue(const char* iata);
 
-  BrokerState _brokers[3];
+  BrokerState _brokers[2];
 
   static void handleMqttEvent(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data);
   bool hasEnabledBroker() const;
@@ -128,7 +124,6 @@ private:
   void refreshBrokerState(BrokerState& broker);
   void ensureBroker(BrokerState& broker, bool allow_new_connect);
   void destroyBroker(BrokerState& broker, bool reset_retry_state = true);
-  bool refreshToken(BrokerState& broker);
   void publishStatus(bool online);
   void publishOnlineStatus(BrokerState& broker);
   void queuePublish(BrokerState& broker, const char* topic, const char* payload, bool retain);

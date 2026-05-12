@@ -2309,10 +2309,8 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
     sprintf(reply, "> %s", mqtt.isTxEnabled() ? "on" : "off");
   } else if (memcmp(command, "get mqtt.meshcoretel", 21) == 0) {
     sprintf(reply, "> %s", mqtt.isEndpointEnabled(0x01) ? "on" : "off");
-  } else if (memcmp(command, "get mqtt.letsmesh-eu", 21) == 0 || memcmp(command, "get mqtt.letsmesh.eu", 21) == 0) {
+  } else if (memcmp(command, "get mqtt.meshscope-khv", 22) == 0 || memcmp(command, "get mqtt.meshscope.khv", 22) == 0) {
     sprintf(reply, "> %s", mqtt.isEndpointEnabled(0x02) ? "on" : "off");
-  } else if (memcmp(command, "get mqtt.letsmesh-us", 21) == 0 || memcmp(command, "get mqtt.letsmesh.us", 21) == 0) {
-    sprintf(reply, "> %s", mqtt.isEndpointEnabled(0x04) ? "on" : "off");
   } else if (memcmp(command, "set mqtt.tx ", 12) == 0) {
     mqtt.setTxEnabled(memcmp(&command[12], "on", 2) == 0);
     strcpy(reply, "OK");
@@ -2349,14 +2347,8 @@ void MyMesh::handleCommand(uint32_t sender_timestamp, char *command, char *reply
     } else {
       strcpy(reply, "Err - max 2 mqtt brokers");
     }
-  } else if (memcmp(command, "set mqtt.letsmesh-eu ", 21) == 0 || memcmp(command, "set mqtt.letsmesh.eu ", 21) == 0) {
-    if (mqtt.setEndpointEnabled(0x02, memcmp(&command[21], "on", 2) == 0)) {
-      strcpy(reply, "OK");
-    } else {
-      strcpy(reply, "Err - max 2 mqtt brokers");
-    }
-  } else if (memcmp(command, "set mqtt.letsmesh-us ", 21) == 0 || memcmp(command, "set mqtt.letsmesh.us ", 21) == 0) {
-    if (mqtt.setEndpointEnabled(0x04, memcmp(&command[21], "on", 2) == 0)) {
+  } else if (memcmp(command, "set mqtt.meshscope-khv ", 23) == 0 || memcmp(command, "set mqtt.meshscope.khv ", 23) == 0) {
+    if (mqtt.setEndpointEnabled(0x02, memcmp(&command[23], "on", 2) == 0)) {
       strcpy(reply, "OK");
     } else {
       strcpy(reply, "Err - max 2 mqtt brokers");
