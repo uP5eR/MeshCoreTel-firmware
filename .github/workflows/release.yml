@@ -28,7 +28,7 @@ jobs:
 
       - name: Build firmware (PlatformIO)
         run: |
-          pio run \
+          pio run -t mergebin \
             -e Ebyte_EoRa-S3_Repeater_mqtt \
             -e Generic_E22_sx1262_repeater_mqtt \
             -e Generic_E22_sx1268_repeater_mqtt \
@@ -63,13 +63,21 @@ jobs:
             -e WHY2025_badge_repeater_mqtt \
             -e Xiao_C6_repeater_mqtt \
             -e Xiao_S3_WIO_repeater_mqtt \
-            -e DIY_ESP32S3_N16R8_E22_Back2back_repeater_mqtt 
+            -e DIY_ESP32S3_N16R8_E22_Back2back_repeater_mqtt
 
       - name: Prepare build artifacts
-
         run: |
           mkdir -p out
-          find .pio/build/ -name "firmware.bin" -exec sh -c 'cp "{}" "out/$(basename $(dirname "{}"))_firmware.bin"' \;
+          for env_dir in .pio/build/*/; do
+            [ -d "$env_dir" ] || continue 
+            env_name=$(basename "$env_dir")
+            if [ -f "${env_dir}firmware.bin" ]; then
+              cp "${env_dir}firmware.bin" "out/${env_name}_firmware.bin"
+            fi
+            if [ -f "${env_dir}firmware-merged.bin" ]; then
+              cp "${env_dir}firmware-merged.bin" "out/${env_name}_merged.bin"
+            fi
+          done
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
