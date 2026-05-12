@@ -7,7 +7,6 @@
 #include <esp_idf_version.h>
 #include <esp_system.h>
 #include <string.h>
-#include "Update.h"
 
 #include "../mqtt/generated/WebPanelCert.h"
 
@@ -437,8 +436,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     .iconbtn { width:44px; padding:12px 0; }
     .placeholder-slot { display:block; width:44px; height:44px; }
     .savebtn { width:100%; background:var(--accent); color:var(--button-text); border:none; }
-    .savebtn:not(:disabled):hover { background:var(--accent-hover); }
-    .savebtn:disabled { opacity:0.45; cursor:not-allowed; }
+    .savebtn:hover { background:var(--accent-hover); }
     .broker-stack { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:12px; align-items:start; }
     .broker-group { display:grid; gap:8px; align-content:start; }
     .broker-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
@@ -559,7 +557,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       .actions-bar { display:grid; grid-template-columns:1fr; gap:10px; }
       .actions-group { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
       .actions-group.left, .actions-group.center, .actions-group.right { justify-self:stretch; }
-      .actions-group.center { grid-template-columns:repeat(2,minmax(0,1fr)); justify-items:stretch; }
+      .actions-group.center { grid-template-columns:repeat(3,minmax(0,1fr)); justify-items:stretch; }
       .actions-group.right { grid-template-columns:repeat(3,minmax(0,1fr)); justify-items:stretch; }
       #actionsPanel .actions-group button { width:100%; }
       #actionsPanel .actions-group.center button { width:100%; min-width:0; }
@@ -592,6 +590,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         </div>
         <div class="actions-group center">
           <button id="advertBtn" class="action-advert">Advert</button>
+          <button id="otaBtn" class="action-dreamy">Start OTA</button>
           <div class="btn-split" id="refreshSplitGroup">
             <button id="refreshPageBtn" class="action-dreamy">Refresh</button>
             <button id="autoRefreshBtn" class="action-dreamy">↻</button>
@@ -661,25 +660,6 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
             <input id="publicKey" readonly disabled>
             <button id="copyPublicKeyBtn" class="iconbtn" title="Copy public key">&#x2398;</button>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card" id="otaPanel" style="display:none">
-      <h2>Firmware Update</h2>
-      <div class="stack">
-        <div class="field-card">
-          <label class="label" for="otaFile">Firmware binary (.bin)</label>
-          <div class="fieldline">
-            <input id="otaFile" type="file" accept=".bin" style="padding:8px">
-            <button id="otaUploadBtn" class="savebtn" disabled>Upload</button>
-          </div>
-        </div>
-        <div id="otaProgress" style="display:none">
-          <div style="background:var(--surface2);border-radius:8px;overflow:hidden;height:8px;margin-bottom:8px">
-            <div id="otaProgressBar" style="height:100%;width:0%;background:var(--accent);transition:width .2s"></div>
-          </div>
-          <div id="otaStatusMsg" style="color:var(--text-muted);font-size:13px"></div>
         </div>
       </div>
     </section>
@@ -769,12 +749,13 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         <div class="section-group">
           <h3>Radio Settings</h3>
           <div class="field-card">
+            <label class="label" for="radioPreset">Preset</label>
             <div class="row">
               <div class="field-card">
                 <div>
-                  <label class="label" id="radioCurrentLabel" for="radioCurrent">Current Radio</label>
+                  <label class="label" for="radioCurrent">Current Radio</label>
                   <div class="fieldline">
-                    <input id="radioCurrent" placeholder="Loading..." readonly disabled>
+                    <input id="radioCurrent" placeholder="915.800 / BW250 / SF10 / CR5" readonly disabled>
                     <button id="refreshRadioBtn" class="iconbtn" title="Refresh current radio">&#8635;</button>
                   </div>
                 </div>
@@ -885,10 +866,39 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         <div class="field-card">
           <label class="label" for="mqttIata">MQTT IATA</label>
           <div class="inline-actions">
-            <input id="mqttIata" list="mqttIataList" placeholder="Specify IATA code (e.g. MOW)" onfocus="this.select()">
-            <datalist id="mqttIataList"></datalist>
+            <select id="mqttIata">
+              <optgroup label="Configuration">
+                <option value="UNSET">UNSET - To be configured</option>
+              </optgroup>
+              <optgroup label="Russia">
+                <option value="BSK">BSK - Biysk</option>
+                <option value="CEE">CEE - Cherepovets</option>
+                <option value="CEK">CEK - Chelyabinsk</option>
+                <option value="GOJ">GOJ - Nizhny Novgorod</option>
+                <option value="IKT">IKT - Irkutsk</option>
+                <option value="IWA">IWA - Ivanovo</option>
+                <option value="KHV">KHV - Khabarovsk</option>
+                <option value="KLD">KLD - Tver</option>
+                <option value="KLF">KLF - Kaluga</option>
+                <option value="KVX">KVX - Kirov</option>
+                <option value="KZN">KZN - Kazan</option>
+                <option value="LPK">LPK - Lipetsk</option>
+                <option value="MOW">MOW - Moscow</option>
+                <option value="OVB">OVB - Novosibirsk</option>
+                <option value="ROV">ROV - Rostov-on-Don</option>
+                <option value="RZN">RZN - Ryazan</option>
+                <option value="SVX">SVX - Yekaterinburg</option>
+                <option value="TBW">TBW - Tambov</option>
+                <option value="TYA">TYA - Tula</option>
+                <option value="UFA">UFA - Ufa</option>
+                <option value="VOG">VOG - Volgograd</option>
+                <option value="VOZ">VOZ - Voronezh</option>
+                <option value="VSG">VSG - Lugansk</option>
+                <option value="VVO">VVO - Vladivostok</option>
+              </optgroup>
+            </select>
             <button class="iconbtn" data-load-cmd="get mqtt.iata" data-load-input="mqttIata" title="Refresh MQTT IATA">&#8635;</button>
-            <button class="savebtn" data-prefix="set mqtt.iata " data-input="mqttIata" disabled>Save</button>
+            <button class="savebtn" data-prefix="set mqtt.iata " data-input="mqttIata">Save</button>
           </div>
         </div>
         <div class="field-card">
@@ -917,7 +927,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 	                  <div class="broker-mode">
 	                    <div class="broker-row">
 	                      <div class="broker-copy">
-	                        <div class="broker-title">MeshCoreTel RU</div>
+	                        <div class="broker-title">MeshCoreTel Observer</div>
 	                        <div class="broker-state" id="mqttMeshcoretelState">Off</div>
 	                      </div>
 	                    </div>
@@ -934,34 +944,31 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 	              </div>
 	            </div>
 	            <div class="broker-group">
-	              <div class="broker-group-title">LetsMesh</div>
+	              <div class="broker-group-title">MeshScope-KHV</div>
 	              <div class="broker-grid single">
 	                <div class="broker-card">
 	                  <div class="broker-mode">
 	                    <div class="broker-row">
 	                      <div class="broker-copy">
-	                        <div class="broker-title">LetsMesh Mode</div>
-	                        <div class="broker-state" id="mqttLetsmeshModeState">Off</div>
+	                        <div class="broker-title">MeshScope-KHV Observer</div>
+	                        <div class="broker-state" id="mqttMeshscopeKhvState">Off</div>
 	                      </div>
 	                    </div>
 	                    <div class="mode-slider">
-	                      <input id="mqttLetsmeshMode" type="range" min="0" max="3" step="1" value="0" aria-label="LetsMesh mode">
-	                      <div class="mode-labels" aria-hidden="true">
-	                        <div class="mode-label" data-letsmesh-label="off">Off</div>
-	                        <div class="mode-label" data-letsmesh-label="eu">EU</div>
-	                        <div class="mode-label" data-letsmesh-label="us">US</div>
-	                        <div class="mode-label" data-letsmesh-label="both">Both</div>
+	                      <input id="mqttMeshscopeKhvMode" type="range" min="0" max="1" step="1" value="0" aria-label="Meshscope Khv mode">
+	                      <div class="mode-labels two" aria-hidden="true">
+	                        <div class="mode-label" data-meshscopekhv-label="off">Off</div>
+	                        <div class="mode-label" data-meshscopekhv-label="on">On</div>
 	                      </div>
 	                    </div>
-	                    <input id="mqttLetsmeshEu" class="visually-hidden" type="checkbox" tabindex="-1" aria-hidden="true">
-	                    <input id="mqttLetsmeshUs" class="visually-hidden" type="checkbox" tabindex="-1" aria-hidden="true">
+	                    <input id="mqttMeshscopeKhv" class="visually-hidden" type="checkbox" tabindex="-1" aria-hidden="true">
 	                  </div>
 	                </div>
 	              </div>
 	            </div>
 	          </div>
 	          <div class="panel-note">Only two brokers can be enabled at the same time.</div>
-	          <div id="mqttBrokerWarning" class="panel-warning">MQTT IATA is unset. Set it before enabling MeshCoreTel or LetsMesh brokers.</div>
+	          <div id="mqttBrokerWarning" class="panel-warning">MQTT IATA is unset. Set it before enabling MeshCoreTel or MeshScope-KHV brokers.</div>
 	        </div>
 	      </div>
 	    </section>
@@ -1002,7 +1009,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 
   </main>
   <script>
-    const RADIO_PRESETS_URL = "https://api.vbart.ru/meshcore-firmware/v1/conf.json";
+    const RADIO_PRESETS_URL = "https://api.meshcore.nz/api/v1/config";
     const isStatsPage = window.location.pathname === "/stats";
     const PANEL_TITLE_KEY = "repeater-panel-title";
     let token = sessionStorage.getItem("repeater-token") || "";
@@ -1010,7 +1017,6 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     let radioPresetEntries = [];
     let currentRadioConfig = null;
     let statsLastFetchedAt = null;
-    let radioSettingsChanged = false;
     const statusEl = document.getElementById("status");
     const replyEl = document.getElementById("reply");
     const themeToggleEl = document.getElementById("themeToggle");
@@ -1055,6 +1061,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       const statsBtn = document.getElementById("statsPageBtn");
       const centerGroup = document.querySelector("#actionsPanel .actions-group.center");
       const advertBtn = document.getElementById("advertBtn");
+      const otaBtn = document.getElementById("otaBtn");
       const refreshSplitGroup = document.getElementById("refreshSplitGroup");
       if (appBtn) {
         appBtn.classList.toggle("active", !isStatsPage);
@@ -1067,6 +1074,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         statsBtn.onclick = () => window.location.assign("/stats");
       }
       if (advertBtn) advertBtn.style.display = isStatsPage ? "none" : "";
+      if (otaBtn) otaBtn.style.display = isStatsPage ? "none" : "";
       if (refreshSplitGroup) refreshSplitGroup.style.display = isStatsPage ? "" : "none";
     }
     function toggleTheme() {
@@ -1168,10 +1176,19 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       };
     }
     function radioSignature(config) {
-      return [config.frequency, config.bandwidth, config.spreadingFactor, config.codingRate].join("|");
+      const normalized = normalizeRadioConfig(config);
+      if (!normalized) return "";
+      return [
+        normalized.frequency.toFixed(3),
+        normalized.bandwidth.toFixed(3),
+        normalized.spreadingFactor,
+        normalized.codingRate
+      ].join("|");
     }
     function formatRadioConfig(config) {
-      return `${config.frequency} / BW${config.bandwidth} / SF${config.spreadingFactor} / CR${config.codingRate}`;
+      const normalized = normalizeRadioConfig(config);
+      if (!normalized) return "";
+      return `${normalized.frequency.toFixed(3)} / BW${normalized.bandwidth.toFixed(3)} / SF${normalized.spreadingFactor} / CR${normalized.codingRate}`;
     }
     function parseRadioValue(value) {
       const parts = String(value || "").split(",");
@@ -1188,10 +1205,6 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       if (!el) return;
       el.textContent = message || "";
       el.style.color = isError ? "var(--status-red)" : "var(--text-muted)";
-    }
-    function setRadioCurrentLabel(text) {
-      const el = document.getElementById("radioCurrentLabel");
-      el.textContent = text;
     }
     function setGhostNodeModeStatus(message, isError) {
       const el = document.getElementById("ghostNodeModeStatus");
@@ -1295,20 +1308,30 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     }
     function syncRadioPresetUi() {
       const currentEl = document.getElementById("radioCurrent");
-      currentEl.value = currentRadioConfig ? formatRadioConfig(currentRadioConfig) : "";
-      if (radioSettingsChanged) {
-        setRadioCurrentLabel("New radio");
-        setRadioPresetStatus("Radio settings were changed, reboot is required.", true);
-      } else {
-        setRadioCurrentLabel("Current Radio");
-        setRadioPresetStatus("", false);
+      if (currentEl) {
+        currentEl.value = currentRadioConfig ? formatRadioConfig(currentRadioConfig) : "";
       }
+      const selectEl = document.getElementById("radioPreset");
       const applyBtn = document.getElementById("applyRadioPresetBtn");
-      if (!applyBtn) return;
+      if (!selectEl || !applyBtn) return;
+      const currentSig = radioSignature(currentRadioConfig);
+      let matchedIndex = -1;
+      for (let i = 0; i < radioPresetEntries.length; i++) {
+        if (radioSignature(radioPresetEntries[i]) === currentSig) {
+          matchedIndex = i;
+          break;
+        }
+      }
       if (!radioPresetEntries.length) {
         applyBtn.disabled = true;
         return;
       }
+      if (matchedIndex >= 0) {
+        selectEl.value = String(matchedIndex);
+        applyBtn.disabled = false;
+        return;
+      }
+      selectEl.value = "";
       applyBtn.disabled = true;
     }
     function toneForPercent(percent, invert) {
@@ -1568,11 +1591,11 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       ];
       const middleCards = [
         results.radio ? renderRadioCard(results.radio) : renderMissingCard("Radio", "stats-radio unavailable"),
-        results.packets ? renderPacketsCard(results.packets) : renderMissingCard("Packets", "stats-packets unavailable")
+        results.memory ? renderMemoryCard(results.memory) : renderMissingCard("Memory", "memory unavailable")
       ];
       const lowerCards = [
         results.wifi ? renderWifiCard(results.wifi, results.wifi_powersave) : renderMissingCard("Wi-Fi", "wifi.status unavailable"),
-        results.memory ? renderMemoryCard(results.memory) : renderMissingCard("Memory", "memory unavailable")
+        results.packets ? renderPacketsCard(results.packets) : renderMissingCard("Packets", "stats-packets unavailable")
       ];
       dashboardEl.innerHTML = notices +
         `<div class="hud-grid-1">${coreCards.join("")}</div>` +
@@ -1982,9 +2005,8 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     function bindSparkHover(canvas, points, key) {
       const tooltip = document.getElementById("tooltip-" + key);
       if (!canvas || !tooltip || !Array.isArray(points) || points.length < 1) return;
-      const updateHover = (index, showTooltip = true) => {
+      const updateHover = (index) => {
         drawSparkline(canvas, points, key, index);
-        if (!showTooltip) return;
         if (index == null || index < 0 || index >= points.length) {
           tooltip.textContent = "";
           tooltip.classList.remove("visible");
@@ -1997,42 +2019,24 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         }
         tooltip.classList.add("visible");
       };
-      canvas._updateHover = updateHover;
-      canvas._points = points;
       canvas.onmousemove = (event) => {
         const rect = canvas.getBoundingClientRect();
         const width = rect.width || 1;
         const x = Math.max(0, Math.min(width, event.clientX - rect.left));
-        const fraction = x / width;
-        document.querySelectorAll('#statsTrends canvas').forEach(c => {
-          if (!c._updateHover || !c._points) return;
-          const idx = Math.max(0, Math.min(c._points.length - 1, Math.round(fraction * (c._points.length - 1))));
-          c._updateHover(idx, c === canvas);
-        });
+        const index = Math.max(0, Math.min(points.length - 1, Math.round((x / width) * (points.length - 1))));
+        updateHover(index);
       };
-      canvas.onmouseleave = () => {
-        document.querySelectorAll('#statsTrends canvas').forEach(c => {
-          if (c._updateHover) c._updateHover(null, c === canvas);
-        });
-      };
+      canvas.onmouseleave = () => updateHover(null);
       canvas.ontouchstart = (event) => {
         const touch = event.touches && event.touches[0];
         if (!touch) return;
         const rect = canvas.getBoundingClientRect();
         const width = rect.width || 1;
         const x = Math.max(0, Math.min(width, touch.clientX - rect.left));
-        const fraction = x / width;
-        document.querySelectorAll('#statsTrends canvas').forEach(c => {
-          if (!c._updateHover || !c._points) return;
-          const idx = Math.max(0, Math.min(c._points.length - 1, Math.round(fraction * (c._points.length - 1))));
-          c._updateHover(idx, c === canvas);
-        });
+        const index = Math.max(0, Math.min(points.length - 1, Math.round((x / width) * (points.length - 1))));
+        updateHover(index);
       };
-      canvas.ontouchend = () => {
-        document.querySelectorAll('#statsTrends canvas').forEach(c => {
-          if (c._updateHover) c._updateHover(null, c === canvas);
-        });
-      };
+      canvas.ontouchend = () => updateHover(null);
     }
     function setTrendCardState(key, title, value) {
       const card = document.getElementById("trend-" + key);
@@ -2139,7 +2143,6 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       document.getElementById("statsPanel").style.display = show && !isStatsPage ? "none" : "none";
       document.getElementById("statsPagePanel").style.display = show && isStatsPage ? "block" : "none";
       document.getElementById("repeaterSettingsPanel").style.display = show && !isStatsPage ? "block" : "none";
-      document.getElementById("otaPanel").style.display = show && !isStatsPage ? "block" : "none";
       if (!show) {
         if (mqttIataBanner) mqttIataBanner.classList.remove("visible");
         commandQueue = Promise.resolve();
@@ -2158,8 +2161,6 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     }
     function refreshMqttIataWarning() {
       const input = document.getElementById("mqttIata");
-      const saveBtn = document.querySelector('[data-input="mqttIata"][data-prefix]');
-      if (saveBtn) saveBtn.disabled = !input || !input.value.trim();
       const banner = document.getElementById("mqttIataBanner");
       const inlineWarning = document.getElementById("mqttBrokerWarning");
       const showWarning = !!(input && isUnsetMqttIata(input.value));
@@ -2287,16 +2288,6 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         return JSON.parse(text);
       });
     }
-	    function getLetsmeshMode() {
-	      const eu = document.getElementById("mqttLetsmeshEu");
-	      const us = document.getElementById("mqttLetsmeshUs");
-	      const euOn = eu && eu.checked;
-	      const usOn = us && us.checked;
-	      if (euOn && usOn) return "both";
-	      if (euOn) return "eu";
-	      if (usOn) return "us";
-	      return "off";
-	    }
 	    function refreshMeshcoretelModeUi() {
 	      const input = document.getElementById("mqttMeshcoretel");
 	      const enabled = !!(input && input.checked);
@@ -2308,35 +2299,15 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 	        label.classList.toggle("active", label.dataset.meshcoretelLabel === (enabled ? "on" : "off"));
 	      });
 	    }
-	    function getLetsmeshModeIndex(mode) {
-	      const order = { off:0, eu:1, us:2, both:3 };
-	      return Object.prototype.hasOwnProperty.call(order, mode) ? order[mode] : 0;
-	    }
-	    function clampLetsmeshModeIndex(index) {
-	      const meshcoretel = document.getElementById("mqttMeshcoretel");
-	      const meshcoretelEnabled = !!(meshcoretel && meshcoretel.checked);
-	      const bounded = Math.max(0, Math.min(3, index));
-	      return meshcoretelEnabled && bounded === 3 ? 1 : bounded;
-	    }
-	    function refreshLetsmeshModeUi() {
-	      const mode = getLetsmeshMode();
-	      const meshcoretel = document.getElementById("mqttMeshcoretel");
-	      const meshcoretelEnabled = !!(meshcoretel && meshcoretel.checked);
-	      const state = document.getElementById("mqttLetsmeshModeState");
-	      const labels = { off:"Off", eu:"EU", us:"US", both:"Both" };
-	      if (state) {
-	        state.textContent = labels[mode] || "Off";
-	        state.classList.toggle("on", mode !== "off");
-	      }
-	      const slider = document.getElementById("mqttLetsmeshMode");
+	    function refreshMeshscopeKhvModeUi() {
+	      const input = document.getElementById("mqttMeshscopeKhv");
+	      const enabled = !!(input && input.checked);
+	      const slider = document.getElementById("mqttMeshscopeKhvMode");
 	      if (slider) {
-	        slider.max = "3";
-	        slider.value = String(clampLetsmeshModeIndex(getLetsmeshModeIndex(mode)));
+	        slider.value = enabled ? "1" : "0";
 	      }
-	      document.querySelectorAll("[data-letsmesh-label]").forEach((label) => {
-	        const labelMode = label.dataset.letsmeshLabel;
-	        label.classList.toggle("active", labelMode === mode);
-	        label.classList.toggle("disabled", meshcoretelEnabled && labelMode === "both");
+	      document.querySelectorAll("[data-meshscopekhv-label]").forEach((label) => {
+	        label.classList.toggle("active", label.dataset.meshscopekhvLabel === (enabled ? "on" : "off"));
 	      });
 	    }
 	    function setBrokerToggle(inputId, state) {
@@ -2349,11 +2320,10 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 	        label.textContent = enabled ? "On" : "Off";
 	        label.classList.toggle("on", enabled);
 	      }
-	      if (inputId === "mqttLetsmeshEu" || inputId === "mqttLetsmeshUs") {
-	        refreshLetsmeshModeUi();
+	      if (inputId === "mqttMeshscopeKhv") {
+	        refreshMeshscopeKhvModeUi();
 	      } else if (inputId === "mqttMeshcoretel") {
 	        refreshMeshcoretelModeUi();
-	        refreshLetsmeshModeUi();
 	      }
 	    }
     async function loadBrokerState(cmd, inputId, options = {}) {
@@ -2372,7 +2342,6 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         setRadioPresetStatus("Current radio config was not recognised.", true);
         return;
       }
-      document.getElementById("radioPreset").value = "";
       currentRadioConfig = parsed;
       setRadioPresetStatus("");
       syncRadioPresetUi();
@@ -2390,7 +2359,9 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     async function loadRadioPresets() {
       const selectEl = document.getElementById("radioPreset");
       const applyBtn = document.getElementById("applyRadioPresetBtn");
-      selectEl.innerHTML = '<option value="">Loading presets...</option>';
+      if (selectEl) {
+        selectEl.innerHTML = '<option value="">Loading presets...</option>';
+      }
       if (applyBtn) applyBtn.disabled = true;
       setRadioPresetStatus("");
       try {
@@ -2398,30 +2369,31 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         if (!res.ok) {
           throw new Error("Preset service returned " + res.status);
         }
-        const entries = await res.json();
-        if (!Array.isArray(entries)) throw new Error("Unexpected preset format");
-        radioPresetEntries = entries.map((entry) => {
-          const normalized = normalizeRadioConfig(entry.settings);
-          if (!normalized) return null;
-          return { title: `${entry.name} (${entry.code})`, ...normalized };
-        }).filter(Boolean);
-        const options = ['<option value="">Load from preset</option>'];
+        const payload = await res.json();
+        const config = payload && payload.config ? payload.config : {};
+        const suggested = config && config.suggested_radio_settings ? config.suggested_radio_settings : {};
+        const entries = Array.isArray(suggested.entries) ? suggested.entries : [];
+        radioPresetEntries = entries.map((entry) => ({
+          title: String(entry.title || "Unnamed preset"),
+          description: String(entry.description || ""),
+          frequency: formatDecimal(entry.frequency, 3),
+          bandwidth: formatDecimal(entry.bandwidth, 3),
+          spreadingFactor: Number.parseInt(entry.spreading_factor, 10),
+          codingRate: Number.parseInt(entry.coding_rate, 10)
+        })).filter((entry) => radioSignature(entry));
+        if (!selectEl) return;
+        const options = ['<option value="">Custom / current</option>'];
         for (let i = 0; i < radioPresetEntries.length; i++) {
           const preset = radioPresetEntries[i];
           options.push(`<option value="${i}">${escapeHtml(preset.title)}</option>`);
         }
         selectEl.innerHTML = options.join("");
         syncRadioPresetUi();
-        const datalist = document.getElementById("mqttIataList");
-        const iataOptions = ['<option value="UNSET">UNSET - To be configured</option>'];
-        for (const entry of entries) {
-          if (!entry.code || !entry.name) continue;
-          iataOptions.push(`<option value="${escapeHtml(entry.code)}">${escapeHtml(entry.name)}</option>`);
-        }
-        datalist.innerHTML = iataOptions.join("");
       } catch (error) {
         radioPresetEntries = [];
-        selectEl.innerHTML = '<option value="">Community presets unavailable</option>';
+        if (selectEl) {
+          selectEl.innerHTML = '<option value="">Community presets unavailable</option>';
+        }
         if (applyBtn) applyBtn.disabled = true;
         setRadioPresetStatus(error && error.message ? error.message : "Unable to load community presets.", true);
       }
@@ -2470,26 +2442,18 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 	    document.querySelectorAll("[data-cmd]").forEach((btn) => btn.onclick = () => runCommand(btn.dataset.cmd));
 	    document.querySelectorAll("[data-prefix]").forEach((btn) => btn.onclick = () => runPrefixed(btn.dataset.prefix, btn.dataset.input));
 	    document.querySelectorAll("[data-load-cmd]").forEach((btn) => btn.onclick = () => loadField(btn.dataset.loadCmd, btn.dataset.loadInput, btn.dataset.loadFormat));
-	    const mqttIataInput = document.getElementById("mqttIata");
-	    if (mqttIataInput) {
-	      mqttIataInput.addEventListener("input", () => {
-	        const saveBtn = document.querySelector('[data-input="mqttIata"][data-prefix]');
-	        if (saveBtn) saveBtn.disabled = !mqttIataInput.value.trim();
-	      });
+	    const mqttIataSelect = document.getElementById("mqttIata");
+	    if (mqttIataSelect) {
+	      mqttIataSelect.addEventListener("change", refreshMqttIataWarning);
 	    }
 	    async function setMeshcoretelMode(enabled) {
-	      if (enabled && getLetsmeshMode() === "both") {
-	        await setLetsmeshMode("eu");
-	      }
 	      const result = await runCommand(enabled ? "set mqtt.meshcoretel on" : "set mqtt.meshcoretel off");
 	      if (!result.ok) {
 	        refreshMeshcoretelModeUi();
-	        refreshLetsmeshModeUi();
 	        return;
 	      }
 	      setBrokerToggle("mqttMeshcoretel", enabled ? "on" : "off");
 	      refreshMeshcoretelModeUi();
-	      refreshLetsmeshModeUi();
 	    }
 	    const meshcoretelModeSlider = document.getElementById("mqttMeshcoretelMode");
 	    if (meshcoretelModeSlider) {
@@ -2500,42 +2464,22 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
 	        setMeshcoretelMode((Number.parseInt(meshcoretelModeSlider.value, 10) || 0) >= 1);
 	      });
 	    }
-	    async function setLetsmeshMode(mode) {
-	      const meshcoretel = document.getElementById("mqttMeshcoretel");
-	      if (mode === "both" && meshcoretel && meshcoretel.checked) {
-	        refreshLetsmeshModeUi();
+	    async function setMeshscopeKhvMode(enabled) {
+	      const result = await runCommand(enabled ? "set mqtt.meshscope-khv on" : "set mqtt.meshscope-khv off");
+	      if (!result.ok) {
+	        refreshMeshscopeKhvModeUi();
 	        return;
 	      }
-	      const desired = {
-	        eu: mode === "eu" || mode === "both",
-	        us: mode === "us" || mode === "both"
-	      };
-	      const currentEu = document.getElementById("mqttLetsmeshEu").checked;
-	      const currentUs = document.getElementById("mqttLetsmeshUs").checked;
-	      const commands = [];
-	      if (currentEu && !desired.eu) commands.push(["mqttLetsmeshEu", "set mqtt.letsmesh-eu off", "off"]);
-	      if (currentUs && !desired.us) commands.push(["mqttLetsmeshUs", "set mqtt.letsmesh-us off", "off"]);
-	      if (!currentEu && desired.eu) commands.push(["mqttLetsmeshEu", "set mqtt.letsmesh-eu on", "on"]);
-	      if (!currentUs && desired.us) commands.push(["mqttLetsmeshUs", "set mqtt.letsmesh-us on", "on"]);
-	      for (const [inputId, command, nextState] of commands) {
-	        const result = await runCommand(command);
-	        if (!result.ok) {
-	          refreshLetsmeshModeUi();
-	          return;
-	        }
-	        setBrokerToggle(inputId, nextState);
-	      }
-	      refreshLetsmeshModeUi();
+	      setBrokerToggle("mqttMeshscopeKhv", enabled ? "on" : "off");
+	      refreshMeshscopeKhvModeUi();
 	    }
-	    const letsmeshModeSlider = document.getElementById("mqttLetsmeshMode");
-	    if (letsmeshModeSlider) {
-	      letsmeshModeSlider.addEventListener("input", () => {
-	        letsmeshModeSlider.value = String(clampLetsmeshModeIndex(Number.parseInt(letsmeshModeSlider.value, 10) || 0));
+	    const meshscopeKhvModeSlider = document.getElementById("mqttMeshscopeKhvMode");
+	    if (meshscopeKhvModeSlider) {
+	      meshscopeKhvModeSlider.addEventListener("input", () => {
+	        meshscopeKhvModeSlider.value = (Number.parseInt(meshscopeKhvModeSlider.value, 10) || 0) >= 1 ? "1" : "0";
 	      });
-	      letsmeshModeSlider.addEventListener("change", () => {
-	        const modes = ["off", "eu", "us", "both"];
-	        const index = clampLetsmeshModeIndex(Number.parseInt(letsmeshModeSlider.value, 10) || 0);
-	        setLetsmeshMode(modes[index] || "off");
+	      meshscopeKhvModeSlider.addEventListener("change", () => {
+	        setMeshscopeKhvMode((Number.parseInt(meshscopeKhvModeSlider.value, 10) || 0) >= 1);
 	      });
 	    }
 	    document.getElementById("saveOwnerInfo").onclick = () => {
@@ -2571,30 +2515,29 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         return;
       }
       const preset = radioPresetEntries[Number.parseInt(value, 10)];
-      const isAlreadySet = currentRadioConfig && radioSignature(preset) === radioSignature(currentRadioConfig);
-      if (isAlreadySet) {
+      if (!preset) {
         syncRadioPresetUi();
         return;
       }
-      const currentEl = document.getElementById("radioCurrent");
-      currentEl.value = formatRadioConfig(preset);
-      setRadioCurrentLabel("Selected radio preset");
-      setRadioPresetStatus("Click \"Save\" to apply.", false);
       document.getElementById("applyRadioPresetBtn").disabled = false;
     });
     document.getElementById("applyRadioPresetBtn").onclick = async () => {
       const selectEl = document.getElementById("radioPreset");
       const index = Number.parseInt(selectEl.value, 10);
       const preset = radioPresetEntries[index];
+      if (!preset) {
+        setRadioPresetStatus("Select a community preset first.", true);
+        return;
+      }
       const command = `set radio ${preset.frequency},${preset.bandwidth},${preset.spreadingFactor},${preset.codingRate}`;
       const result = await runCommand(command);
       if (!result.ok) {
         setRadioPresetStatus(parseReplyValue(result.text) || "Unable to apply radio preset.", true);
         return;
       }
-      currentRadioConfig = preset;
-      radioSettingsChanged = true;
+      currentRadioConfig = normalizeRadioConfig(preset);
       syncRadioPresetUi();
+      setRadioPresetStatus("Preset saved. Reboot to apply the new radio settings.", false);
     };
     document.getElementById("rebootBtn").onclick = async () => {
       if (confirm("Reboot the repeater now?")) {
@@ -2606,70 +2549,13 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         await runCommand("advert");
       }
     };
-    document.getElementById("otaFile").addEventListener("change", (e) => {
-      document.getElementById("otaUploadBtn").disabled = !e.target.files || !e.target.files.length;
-    });
-
-    document.getElementById("otaUploadBtn").onclick = () => {
-      const file = document.getElementById("otaFile").files[0];
-      if (!file) return;
-      if (!confirm("Upload " + file.name + "? The device will reboot after flashing.")) return;
-
-      const progressEl = document.getElementById("otaProgress");
-      const barEl = document.getElementById("otaProgressBar");
-      const msgEl = document.getElementById("otaStatusMsg");
-      progressEl.style.display = "block";
-      document.getElementById("otaUploadBtn").disabled = true;
-      document.getElementById("otaFile").disabled = true;
-
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/ota");
-      xhr.setRequestHeader("X-Auth-Token", token);
-      xhr.setRequestHeader("Content-Type", "application/octet-stream");
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const pct = Math.round((e.loaded / e.total) * 100);
-          barEl.style.width = pct + "%";
-          msgEl.textContent = "Uploading... " + pct + "%";
+    document.getElementById("otaBtn").onclick = async () => {
+      if (confirm("Start OTA mode now?")) {
+        const result = await runCommand("start ota");
+        if (result && result.ok) {
+          window.open(window.location.origin + "/update", "_blank");
         }
-      };
-      xhr.onload = () => {
-        if (xhr.status === 401) {
-          redirectToLogin();
-          return;
-        }
-        if (xhr.status === 200) {
-          barEl.style.width = "100%";
-          msgEl.textContent = "Done. Device is rebooting";
-          let wait = 4;
-          const iv = setInterval(async () => {
-            msgEl.textContent += '.';
-            if (msgEl.textContent.length > 85) { clearInterval(iv); msgEl.textContent = "Device did not come back online. =("; return; }
-            if (--wait) { return; }
-            wait = 1000; // prevent concurrent fetch
-            try {
-              if ((await fetch("/", { cache: "no-store" })).ok) {
-                clearInterval(iv);
-                msgEl.textContent = "Device is back online. Redirecting to login...";
-                setTimeout(redirectToLogin, 1500);
-                return;
-              }
-            } catch (_) {}
-            wait = 4;
-          }, 1000);
-        } else {
-          msgEl.textContent = "Failed: " + (xhr.responseText || String(xhr.status));
-          document.getElementById("otaUploadBtn").disabled = false;
-          document.getElementById("otaFile").disabled = false;
-        }
-      };
-      xhr.onerror = () => {
-        msgEl.textContent = "Network error during upload.";
-        document.getElementById("otaUploadBtn").disabled = false;
-        document.getElementById("otaFile").disabled = false;
-      };
-      xhr.send(file);
+      }
     };
     const AUTO_REFRESH_INTERVAL = 60;
     let autoRefreshCountdown = 0;
@@ -2754,8 +2640,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
           () => loadField("get mqtt.owner", "mqttOwner", null, quiet),
           () => loadField("get mqtt.email", "mqttEmail", null, quiet),
           () => loadBrokerState("get mqtt.meshcoretel", "mqttMeshcoretel", quiet),
-          () => loadBrokerState("get mqtt.letsmesh-eu", "mqttLetsmeshEu", quiet),
-          () => loadBrokerState("get mqtt.letsmesh-us", "mqttLetsmeshUs", quiet)
+          () => loadBrokerState("get mqtt.meshscope-khv", "mqttMeshscopeKhv", quiet)
         ]);
         statusEl.textContent = "Ready";
       } catch (error) {
@@ -2767,7 +2652,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       loadRadioPresets();
 	    }
 	    refreshMeshcoretelModeUi();
-	    refreshLetsmeshModeUi();
+	    refreshMeshscopeKhvModeUi();
 	    initApp();
 	    if (isStatsPage) {
 	      setInterval(updateStatsLastUpdated, 10000);
@@ -2796,7 +2681,7 @@ bool WebPanelServer::start() {
 
   httpd_ssl_config_t config = HTTPD_SSL_CONFIG_DEFAULT();
   config.httpd.max_open_sockets = 2;
-  config.httpd.max_uri_handlers = 8;
+  config.httpd.max_uri_handlers = 7;
   config.httpd.max_resp_headers = 4;
   config.httpd.backlog_conn = 0;
   config.httpd.recv_wait_timeout = 10;
@@ -2830,7 +2715,6 @@ bool WebPanelServer::start() {
   httpd_uri_t command_uri = {.uri = "/api/command", .method = HTTP_POST, .handler = &WebPanelServer::handleCommand, .user_ctx = &_route_context};
   httpd_uri_t stats_uri = {.uri = "/api/stats", .method = HTTP_GET, .handler = &WebPanelServer::handleStats, .user_ctx = &_route_context};
   httpd_uri_t update = {.uri = "/update", .method = HTTP_GET, .handler = &WebPanelServer::handleOtaRedirect, .user_ctx = &_route_context};
-  httpd_uri_t ota_uri = { .uri = "/api/ota", .method = HTTP_POST, .handler = &WebPanelServer::handleOtaUpload, .user_ctx = &_route_context };
   httpd_register_uri_handler(_server, &index_uri);
   httpd_register_uri_handler(_server, &app_uri);
   httpd_register_uri_handler(_server, &stats_page_uri);
@@ -2838,7 +2722,6 @@ bool WebPanelServer::start() {
   httpd_register_uri_handler(_server, &command_uri);
   httpd_register_uri_handler(_server, &stats_uri);
   httpd_register_uri_handler(_server, &update);
-  httpd_register_uri_handler(_server, &ota_uri);
 
   httpd_config_t redirect_config = HTTPD_DEFAULT_CONFIG();
   redirect_config.server_port = 80;
@@ -2988,59 +2871,6 @@ esp_err_t WebPanelServer::handleOtaRedirect(httpd_req_t* req) {
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   httpd_resp_set_hdr(req, "Connection", "close");
   return httpd_resp_send(req, "", 0);
-}
-
-esp_err_t WebPanelServer::handleOtaUpload(httpd_req_t* req) {
-  auto* ctx = static_cast<RouteContext*>(req->user_ctx);
-  if (ctx == nullptr || ctx->self == nullptr) {
-    return httpd_resp_send_500(req);
-  }
-  if (!ctx->self->isAuthorized(req)) {
-    return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-  }
-
-  ctx->self->noteActivity();
-
-  int remaining = req->content_len;
-  if (remaining <= 0) {
-    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No content");
-  }
-
-  constexpr size_t kChunkSize = 4096;
-  char* buf = allocScratchBuffer(kChunkSize);
-  if (buf == nullptr) {
-    return httpd_resp_send_500(req);
-  }
-
-  if (!Update.begin(static_cast<size_t>(remaining), U_FLASH)) {
-    freeScratchBuffer(buf);
-    return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Update begin failed");
-  }
-
-  while (remaining > 0) {
-    int to_read = (remaining < (int)kChunkSize) ? remaining : (int)kChunkSize;
-    int n = httpd_req_recv(req, buf, to_read);
-    if (n <= 0) {
-      Update.abort();
-      freeScratchBuffer(buf);
-      return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Read error");
-    }
-    if (Update.write(reinterpret_cast<uint8_t*>(buf), n) != (size_t)n) {
-      Update.abort();
-      freeScratchBuffer(buf);
-      return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Write error");
-    }
-    remaining -= n;
-  }
-  freeScratchBuffer(buf);
-
-  if (!Update.end()) {
-    return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Update end failed");
-  }
-
-  (void)httpd_resp_sendstr(req, "OK");
-  vTaskDelay(pdMS_TO_TICKS(1000));
-  esp_restart();
 }
 
 esp_err_t WebPanelServer::handleLogin(httpd_req_t* req) {

@@ -40,21 +40,18 @@
 
 - `get mqtt.meshcoretel`
 - `set mqtt.meshcoretel on|off`
-- `get mqtt.letsmesh-eu`
-- `set mqtt.letsmesh-eu on|off`
-- `get mqtt.letsmesh-us`
-- `set mqtt.letsmesh-us on|off`
+- `get mqtt.meshscope-khv`
+- `set mqtt.meshscope-khv on|off`
 
 Примечания:
 
 - новые установки MQTT ретранслятора по умолчанию имеют `mqtt.iata = UNSET`
-- `letsmesh-eu` и `letsmesh-us` по умолчанию выключены, если они уже не были настроены в сохранённых настройках
-- если `mqtt.iata` имеет значение `UNSET`, `meshcoretel`, `letsmesh-eu` и `letsmesh-us` не будут подключаться, даже если они включены
+- `meshscope-khv` по умолчанию выключен, если он уже не был настроен в сохранённых настройках
+- если `mqtt.iata` имеет значение `UNSET`, `meshcoretel` и `meshscope-khv` не будут подключаться, даже если они включены
 
 Также принимаются устаревшие псевдонимы с точкой:
 
-- `mqtt.letsmesh.eu`
-- `mqtt.letsmesh.us`
+- `mqtt.meshscope.khv`
 
 ### Настройки Wi-Fi для MQTT ретрансляторов
 
