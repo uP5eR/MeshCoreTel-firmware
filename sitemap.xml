@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url>
+        <loc>https://vbart.github.io/MeshCoreTel-firmware/</loc>
+      </url>
+      <url>
+        <loc>https://vbart.github.io/MeshCoreTel-firmware/boards/</loc>
+      </url>
+      <url>
+        <loc>https://vbart.github.io/MeshCoreTel-firmware/releases/</loc>
+      </url>
+      <url>
+        <loc>https://vbart.github.io/MeshCoreTel-firmware/custom-cli/</loc>
+      </url>
+      <url>
+        <loc>https://vbart.github.io/MeshCoreTel-firmware/web-panel/</loc>
+      </url>
+      <url>
+        <loc>https://vbart.github.io/MeshCoreTel-firmware/api/</loc>
+      </url>
+      <url>
+        <loc>https://vbart.github.io/MeshCoreTel-firmware/local-builds/</loc>
+      </url>
+</urlset>
