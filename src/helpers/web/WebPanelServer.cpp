@@ -410,13 +410,13 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     input:not([type="checkbox"]), textarea, select, button { -webkit-appearance:none; appearance:none; }
     textarea { min-height:100px; resize:vertical; }
     button { width:auto; cursor:pointer; background:var(--accent); color:var(--button-text); border:none; font-weight:700; transition:background .2s ease,color .2s ease,border-color .2s ease; }
-    button:hover { background:var(--accent-hover); }
+    button:not(:disabled):hover { background:var(--accent-hover); }
     .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .row-command { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; }
     .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
     .quick { display:flex; flex-wrap:wrap; gap:10px; }
     .quick button, .iconbtn, .themebtn { background:var(--surface2); color:var(--button-secondary-text); border:1px solid var(--border); }
-    .quick button:hover, .iconbtn:hover, .themebtn:hover { background:var(--surface1); }
+    .quick button:hover, button.iconbtn:hover, button.themebtn:hover { background:var(--surface1); }
     button.action-advert { background:linear-gradient(135deg,#d97706,#f59e0b); color:#fff7ed; border:none; }
     button.action-advert:hover { background:linear-gradient(135deg,#ea8f17,#ffb938); }
     button.action-caution { background:linear-gradient(135deg,#b94747,#d66a5f); color:#fff5f5; border:none; }
@@ -437,6 +437,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
     .placeholder-slot { display:block; width:44px; height:44px; }
     .savebtn { width:100%; background:var(--accent); color:var(--button-text); border:none; }
     .savebtn:hover { background:var(--accent-hover); }
+    .savebtn:disabled { opacity:0.45; cursor:not-allowed; }
     .broker-stack { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:12px; align-items:start; }
     .broker-group { display:grid; gap:8px; align-content:start; }
     .broker-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
@@ -656,9 +657,10 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         </div>
         <div class="field-card">
           <label class="label" for="publicKey">Public Key</label>
-          <div class="fieldline">
+          <div class="inline-actions">
             <input id="publicKey" readonly disabled>
             <button id="copyPublicKeyBtn" class="iconbtn" title="Copy public key">&#x2398;</button>
+            <button id="meshcoretelProfileBtn" class="iconbtn" title="View on meshcoretel.ru" style="display:none">&#x2139;</button>
           </div>
         </div>
       </div>
@@ -1685,7 +1687,12 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       }
       const renderNeighbourId = (neighbour) => {
         const shortId = escapeHtml(neighbour.id || "--");
-        return shortId;
+        const fullId = typeof neighbour.full_id === "string" ? neighbour.full_id.trim() : "";
+        if (!/^[0-9A-Fa-f]{64}$/.test(fullId)) {
+          return shortId;
+        }
+        const href = "https://meshcoretel.ru/" + encodeURIComponent(fullId.toUpperCase());
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer">${shortId}</a>`;
       };
       const rows = neighbours.map((neighbour) => `<tr>
         <td>${renderNeighbourId(neighbour)}</td>
@@ -2019,24 +2026,37 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
         }
         tooltip.classList.add("visible");
       };
-      canvas.onmousemove = (event) => {
-        const rect = canvas.getBoundingClientRect();
-        const width = rect.width || 1;
-        const x = Math.max(0, Math.min(width, event.clientX - rect.left));
-        const index = Math.max(0, Math.min(points.length - 1, Math.round((x / width) * (points.length - 1))));
-        updateHover(index);
-      };
-      canvas.onmouseleave = () => updateHover(null);
-      canvas.ontouchstart = (event) => {
-        const touch = event.touches && event.touches[0];
-        if (!touch) return;
-        const rect = canvas.getBoundingClientRect();
-        const width = rect.width || 1;
-        const x = Math.max(0, Math.min(width, touch.clientX - rect.left));
-        const index = Math.max(0, Math.min(points.length - 1, Math.round((x / width) * (points.length - 1))));
-        updateHover(index);
-      };
-      canvas.ontouchend = () => updateHover(null);
+      canvas._updateHover = updateHover;
+      canvas._points = points;
+      function syncHoverByX(srcCanvas, clientX) {
+        const rect = srcCanvas.getBoundingClientRect();
+        const x = Math.max(0, Math.min(rect.width || 1, clientX - rect.left));
+        let srcIdx;
+        if (key === "packets" || key === "gps_satellites") {
+          const plotLeft = 4, plotRight = (rect.width || 1) - 4;
+          const slotWidth = (plotRight - plotLeft) / points.length;
+          srcIdx = Math.max(0, Math.min(points.length - 1, Math.floor((x - plotLeft) / slotWidth)));
+        } else {
+          srcIdx = Math.max(0, Math.min(points.length - 1, Math.round(x / (rect.width || 1) * (points.length - 1))));
+        }
+        const hoveredTs = points[srcIdx][0];
+        document.querySelectorAll('#statsTrends canvas').forEach(c => {
+          if (!c._updateHover || !c._points) return;
+          if (c === srcCanvas) { c._updateHover(srcIdx, true); return; }
+          let bestIdx = 0, bestDiff = Infinity;
+          c._points.forEach((pt, i) => { const d = Math.abs(pt[0] - hoveredTs); if (d < bestDiff) { bestDiff = d; bestIdx = i; } });
+          c._updateHover(bestIdx, false);
+        });
+      }
+      function syncHoverClear(srcCanvas) {
+        document.querySelectorAll('#statsTrends canvas').forEach(c => {
+          if (c._updateHover) c._updateHover(null, c === srcCanvas);
+        });
+      }
+      canvas.onmousemove  = (e) => syncHoverByX(canvas, e.clientX);
+      canvas.onmouseleave = () => syncHoverClear(canvas);
+      canvas.ontouchstart = (e) => { const t = e.touches && e.touches[0]; if (t) syncHoverByX(canvas, t.clientX); };
+      canvas.ontouchend   = () => syncHoverClear(canvas);
     }
     function setTrendCardState(key, title, value) {
       const card = document.getElementById("trend-" + key);
@@ -2078,7 +2098,7 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
       }
       const rangeEl = document.getElementById("head-range-" + key);
       if (rangeEl && points.length) {
-        const values = points.map((p) => p[1]).filter((v) => Number.isFinite(v));
+        const values = points.map(key === "packets" ? ((p) => p[1] + p[2]) : ((p) => p[1])).filter((v) => Number.isFinite(v));
         if (values.length) {
           rangeEl.textContent = "min " + formatTrendValue(key, Math.min(...values), false) + " / max " + formatTrendValue(key, Math.max(...values), false);
         }
@@ -2618,6 +2638,12 @@ const char kWebPanelAppHtml[] PROGMEM = R"HTML(
           () => loadField("clock", "clockUtc", null, quiet),
           () => loadField("get public.key", "publicKey", "uppercase", quiet)
         ]);
+        const pubKeyValue = document.getElementById("publicKey").value.trim();
+        const profileBtn = document.getElementById("meshcoretelProfileBtn");
+        if (profileBtn && /^[0-9A-F]{64}$/.test(pubKeyValue)) {
+          profileBtn.onclick = () => window.open("https://meshcoretel.ru/" + encodeURIComponent(pubKeyValue), "_blank", "noopener,noreferrer");
+          profileBtn.style.display = "";
+        }
         await loadSection("Loading repeater settings...", [
           () => loadField("get name", "nodeName", null, quiet),
           () => loadField("get lat", "nodeLat", null, quiet),
